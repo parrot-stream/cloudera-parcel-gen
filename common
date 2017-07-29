@@ -1,0 +1,62 @@
+#!/bin/bash
+
+command -v git >/dev/null 2>&1 || { echo >&2 "Cloudera Parcel generators require 'git' but it's not installed. Please, install 'git'!"; exit 1; }
+command -v mvn >/dev/null 2>&1 || { echo >&2 "Cloudera Parcel generators require 'Maven' but it's not installed. Please, install 'Maven'!"; exit 1; }
+command -v java >/dev/null 2>&1 || { echo >&2 "Cloudera Parcel generators require 'Java' but it's not installed. Please, install 'Java'!"; exit 1; }
+
+function validate {
+  java -jar $SCRIPT_DIR/../cm_ext/validator/target/validator.jar -d $PARCEL_BUILD_DIR/$PARCEL_DIR_NAME
+  java -jar $SCRIPT_DIR/../cm_ext/validator/target/validator.jar -p $PARCEL_BUILD_DIR/$PARCEL_DIR_NAME/meta/parcel.json
+  java -jar $SCRIPT_DIR/../cm_ext/validator/target/validator.jar -f $PARCEL_REPOSITORY_DIR/$PARCEL_FILE_NAME.parcel
+}
+
+function build {
+  PARCEL_DIR_NAME=$NAME-$VERSION
+  BASE_VERSION=$SOURCE_VERSION
+  mkdir -p $PARCEL_BUILD_DIR/$PARCEL_DIR_NAME
+  cp -r $PARCEL_META_DIR $PARCEL_BUILD_DIR/$PARCEL_DIR_NAME
+}
+
+function replace {
+  sed -i "s/{{NAME}}/${NAME}/g" $PARCEL_BUILD_DIR/$PARCEL_DIR_NAME/meta/parcel.json
+  sed -i "s/{{NAME}}/${NAME}/g" $PARCEL_BUILD_DIR/$PARCEL_DIR_NAME/meta/*_env.sh
+  sed -i "s/{{VERSION}}/${VERSION}/g" $PARCEL_BUILD_DIR/$PARCEL_DIR_NAME/meta/parcel.json
+  sed -i "s/{{VERSION}}/${VERSION}/g" $PARCEL_BUILD_DIR/$PARCEL_DIR_NAME/meta/*_env.sh
+  sed -i "s/{{VERSION}}/${VERSION}/g" $PARCEL_BUILD_DIR/$PARCEL_DIR_NAME/cloudera/cdh_version.properties
+  sed -i "s/{{BASE_VERSION}}/${SOURCE_VERSION}/g" $PARCEL_BUILD_DIR/$PARCEL_DIR_NAME/meta/parcel.json
+  sed -i "s/{{SOURCE_VERSION}}/${SOURCE_VERSION}/g" $PARCEL_BUILD_DIR/$PARCEL_DIR_NAME/meta/parcel.json
+  sed -i "s/{{KAFKA_MIN_VERSION}}/${KAFKA_MIN_VERSION}/g" $PARCEL_BUILD_DIR/$PARCEL_DIR_NAME/meta/parcel.json
+  sed -i "s/{{DISTRO}}/${DISTRO}/g" $PARCEL_BUILD_DIR/$PARCEL_DIR_NAME/meta/parcel.json
+}
+
+SOURCE_VERSION=$1
+PARROT_VERSION=$2
+if [[ (-z "$SOURCE_VERSION") ]]; then
+  echo -e "\nSOURCE_VERSION is missing!\n"
+  usage
+  exit 1
+fi
+if [[ (-z "$PARROT_VERSION") ]]; then
+  echo -e "\nPARROT_VERSION is missing!\n"
+  usage
+  exit 1
+fi
+
+DISTRO_LIST=el5,el6,el7,slesl1,lucid,precise,trusty,squeeze,wheezy
+
+SCRIPT_DIR=$PWD
+PARCEL_DIR=$SCRIPT_DIR/parcel
+PARCEL_BUILD_DIR=$PARCEL_DIR/build
+PARCEL_REPOSITORY_DIR=$PARCEL_DIR/repo
+PARCEL_META_DIR=./meta
+PARCEL_CLOUDERA_DIR=./cloudera
+VERSION=$PARROT_VERSION-$SOURCE_VERSION
+
+rm -rf $PARCEL_BUILD_DIR
+rm -rf $PARCEL_REPOSITORY_DIR
+mkdir -p $PARCEL_BUILD_DIR
+mkdir -p $PARCEL_REPOSITORY_DIR
+
+rm -rf ../cm_ext
+git clone https://github.com/cloudera/cm_ext.git ../cm_ext
+mvn -f ../cm_ext/pom.xml -DskipTests install

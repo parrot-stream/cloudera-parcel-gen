@@ -1,0 +1,46 @@
+#!/bin/bash
+
+set -e
+
+NAME="SCHEMA_REGISTRY"
+KAFKA_MIN_VERSION=2.2.0
+# PACKAGEs
+CONFLUENT_SCHEMA_REGISTRY_NAME=confluent-schema-registry
+CONFLUENT_REST_UTILS_NAME=confluent-rest-utils
+CONFLUENT_COMMON_NAME=confluent-common
+
+function usage {
+  echo -e "#################################################################################################################################################"
+  echo -e "  Usage:"
+  echo -e "             ./parcel-schema-registry SOURCE_VERSION TARGET_VERSION"
+  echo -e ""
+  echo -e "  Options:\n" 
+  echo -e "             SOURCE_VERSION     Confluent Schema Registry version (for example 3.2.2)"
+  echo -e "             PARROT_VERSION     Parrot distribution version (for example 0.1.0)"
+  echo -e "#################################################################################################################################################"
+}
+
+function distribute {
+  IFS=',' read -a splitted <<< "$DISTRO_LIST"
+  for s in "${splitted[@]}"
+  do
+    DISTRO=${s}
+    PARCEL_FILE_NAME=$NAME-$VERSION-$DISTRO
+    cp -r $PARCEL_META_DIR $PARCEL_BUILD_DIR/$PARCEL_DIR_NAME
+    cp -r $PARCEL_CLOUDERA_DIR $PARCEL_BUILD_DIR/$PARCEL_DIR_NAME
+    cp -r $PARCEL_BUILD_DIR/schema-registry/package-schema-registry/target/kafka-schema-registry-package-$SOURCE_VERSION-package/* $PARCEL_BUILD_DIR/$PARCEL_DIR_NAME
+    replace
+    tar zcvf $PARCEL_REPOSITORY_DIR/$PARCEL_FILE_NAME.parcel -C $PARCEL_BUILD_DIR $PARCEL_DIR_NAME --owner=root --group=root
+    sha1sum $PARCEL_REPOSITORY_DIR/$PARCEL_FILE_NAME.parcel > $PARCEL_REPOSITORY_DIR/$PARCEL_FILE_NAME.parcel.sha
+    validate
+  done
+  $SCRIPT_DIR/../cm_ext/make_manifest/make_manifest.py $PARCEL_REPOSITORY_DIR
+}
+
+. ../common
+
+git clone -b v$SOURCE_VERSION https://github.com/confluentinc/schema-registry.git $PARCEL_BUILD_DIR/schema-registry
+mvn -f $PARCEL_BUILD_DIR/schema-registry/pom.xml -DskipTests package
+
+build
+distribute

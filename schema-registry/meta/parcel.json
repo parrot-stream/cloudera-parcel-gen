@@ -1,0 +1,55 @@
+{
+  "schema_version":     1,
+  "name":               "{{NAME}}",
+  "version":            "{{VERSION}}",
+  "extraVersionInfo": {
+    "fullVersion":        "{{VERSION}}-{{DISTRO}}",
+    "baseVersion":        "{{BASE_VERSION}}",
+    "patchCount":         "0"
+  },
+  
+  "depends":            "KAFKA (>= 2.2.0)",
+
+  "setActiveSymlink":   true,
+
+  "scripts": {
+    "defines": "schema-registry_env.sh"
+  },
+
+  "provides": [
+        "schema-registry"
+  ],
+
+  "packages": [
+    { "name":     "confluent-schema-registry",
+      "version":  "{{SOURCE_VERSION}}"
+    },
+    { "name":     "confluent-rest-utils",
+      "version":  "{{SOURCE_VERSION}}"
+    },
+    { "name":     "confluent-common",
+      "version":  "{{SOURCE_VERSION}}"
+    }
+  ],
+
+  "components": [
+    { "name":     "confluent-schema-registry",
+      "version":  "{{VERSION}}",
+      "pkg_version": "{{SOURCE_VERSION}}",
+      "pkg_release": "{{SOURCE_VERSION}}"
+    }
+  ],
+
+  "users": {
+     "parrot": {
+       "longname"    : "Parrot",
+       "home"        : "/var/lib/parrot",
+       "shell"       : "/sbin/nologin",
+       "extra_groups" : [ ]
+     }
+  },
+
+  "groups": [
+     "parrot"
+  ]
+}
